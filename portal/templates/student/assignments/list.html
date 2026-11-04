@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Browse Assignments{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Course Assignments</h1>
+        <p class="text-muted mb-0">Join official project groups. First students to click Join lock the team.</p>
+    </div>
+</div>
+
+<!-- Search & Filtering -->
+<div class="card-portal p-3 mb-4 shadow-sm">
+    <form method="GET" action="{{ url_for('student.assignments') }}" class="row g-2 align-items-center">
+        <div class="col-md-5">
+            <div class="input-group">
+                <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search text-muted"></i></span>
+                {{ filter_form.search(class="form-control border-start-0", value=request.args.get('search', '')) }}
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            {{ filter_form.status(class="form-select", value=request.args.get('status', '')) }}
+        </div>
+        <div class="col-6 col-md-2">
+            {{ filter_form.sort_by(class="form-select", value=request.args.get('sort_by', 'newest')) }}
+        </div>
+        <div class="col-12 col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-outline-primary flex-grow-1">Filter</button>
+            <a href="{{ url_for('student.assignments') }}" class="btn btn-outline-secondary" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Assignments Grid -->
+<div class="row g-4 mb-4">
+    {% for a in assignments %}
+        {% set membership = my_memberships.get(a.id) %}
+        {% set enrolled = a.get_current_enrolled_count() %}
+        {% set target = a.max_group_size * a.max_groups %}
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card-portal p-4 h-100 d-flex flex-column shadow-sm {{ 'border-primary' if membership else '' }}">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge {{ 'bg-primary' if membership else 'bg-light text-dark border' }}">
+                        {{ 'ENROLLED' if membership else a.assignment_type }}
+                    </span>
+                    <span class="badge badge-status {{ a.status|status_badge }}">{{ a.status }}</span>
+                </div>
+
+                <h2 class="h5 fw-bold mb-2">
+                    <a href="{{ url_for('student.assignment_detail', assignment_id=a.id) }}" class="text-decoration-none text-reset">
+                        {{ a.title }}
+                    </a>
+                </h2>
+
+                <p class="text-muted small mb-3 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                    {{ a.description }}
+                </p>
+
+                <!-- Group Sizing & Progress -->
+                <div class="p-3 bg-light rounded small mb-3 border">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted">Team Size:</span>
+                        <strong class="text-dark">{{ a.max_group_size }} Member{{ 's' if a.max_group_size > 1 else '' }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="text-muted">Cohort Enrolled:</span>
+                        <strong>{{ enrolled }} / {{ target }}</strong>
+                    </div>
+                    <div class="progress group-progress mt-2">
+                        <div class="progress-bar {{ 'bg-warning' if a.is_full else 'bg-primary' }}" style="width: {{ [100, (enrolled / target * 100)|round]|min }}%"></div>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <div class="mt-auto pt-2">
+                    {% if membership %}
+                        <a href="{{ url_for('student.assignment_detail', assignment_id=a.id) }}" class="btn btn-outline-primary w-100 fw-semibold">
+                            <i class="bi bi-people-fill me-1"></i> View My Team
+                        </a>
+                    {% elif a.status == 'OPEN' %}
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('student.assignment_detail', assignment_id=a.id) }}" class="btn btn-outline-secondary w-50">
+                                Details
+                            </a>
+                            <form method="POST" action="{{ url_for('student.join_assignment', assignment_id=a.id) }}" class="w-50">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-primary w-100 fw-semibold">
+                                    <i class="bi bi-person-plus-fill me-1"></i> Join
+                                </button>
+                            </form>
+                        </div>
+                    {% elif a.status == 'FULL' %}
+                        <button class="btn btn-secondary w-100 disabled" disabled>
+                            <i class="bi bi-lock-fill me-1"></i> Team Capacity Reached (FULL)
+                        </button>
+                    {% else %}
+                        <button class="btn btn-secondary w-100 disabled" disabled>
+                            <i class="bi bi-slash-circle me-1"></i> Closed
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="col-12 text-center py-5 text-muted">
+            <i class="bi bi-journal-x fs-1 d-block mb-3 opacity-50"></i>
+            <h3 class="h5 fw-bold">No assignments found</h3>
+            <p class="small text-muted">Check back later or adjust your search filter criteria.</p>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+    <div class="d-flex justify-content-between align-items-center p-3 card-portal">
+        <small class="text-muted">Showing page {{ pagination.page }} of {{ pagination.pages }}</small>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if pagination.has_prev %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('student.assignments', page=pagination.prev_num, **request.args) }}">Previous</a></li>
+                {% endif %}
+                {% for p in pagination.iter_pages() %}
+                    {% if p %}
+                        <li class="page-item {{ 'active' if p == pagination.page else '' }}">
+                            <a class="page-link" href="{{ url_for('student.assignments', page=p, **request.args) }}">{{ p }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                {% if pagination.has_next %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('student.assignments', page=pagination.next_num, **request.args) }}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endif %}
+{% endblock %}

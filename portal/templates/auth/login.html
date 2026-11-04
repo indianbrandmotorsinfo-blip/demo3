@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-md-6 col-lg-5 col-xl-4">
+        <div class="card-portal p-4 p-md-5">
+            <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary rounded-circle mb-3" style="width: 56px; height: 56px;">
+                    <i class="bi bi-person-lock fs-3"></i>
+                </div>
+                <h2 class="h4 fw-bold">Sign In</h2>
+                <p class="text-muted small">Access your assignment dashboard and teams</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('auth.login', next=request.args.get('next')) }}" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold" for="email">Email Address</label>
+                    {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else "")) }}
+                    {% for error in form.email.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <label class="form-label small fw-semibold" for="password">Password</label>
+                        <a href="{{ url_for('auth.forgot_password') }}" class="small text-decoration-none">Forgot password?</a>
+                    </div>
+                    {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else "")) }}
+                    {% for error in form.password.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3 form-check">
+                    {{ form.remember_me(class="form-check-input") }}
+                    <label class="form-check-label small" for="remember_me">{{ form.remember_me.label.text }}</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+                </button>
+            </form>
+
+            <div class="mt-4 pt-3 border-top text-center small text-muted">
+                Don't have an account? 
+                <a href="{{ url_for('auth.register') }}" class="fw-semibold text-primary text-decoration-none">Register as Student</a>
+            </div>
+
+            <!-- Pre-seeded accounts guidance -->
+            <div class="mt-4 p-3 bg-light rounded small border">
+                <div class="fw-bold mb-1"><i class="bi bi-key-fill text-warning me-1"></i> Quick Test Credentials:</div>
+                <div class="text-muted mb-1"><strong>Admin:</strong> <code>admin@gmail.com</code> / <code>Admin@123</code></div>
+                <div class="text-muted"><strong>Student:</strong> <code>alex@portal.edu</code> / <code>Student@12345</code></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

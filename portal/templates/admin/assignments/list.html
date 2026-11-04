@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Assignments{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Course Assignments</h1>
+        <p class="text-muted mb-0">Create, monitor group capacity, lock, or close assignment cohorts</p>
+    </div>
+    <a href="{{ url_for('admin.create_assignment') }}" class="btn btn-primary d-flex align-items-center gap-2">
+        <i class="bi bi-plus-lg"></i> Create New Assignment
+    </a>
+</div>
+
+<!-- Search & Filtering Bar -->
+<div class="card-portal p-3 mb-4">
+    <form method="GET" action="{{ url_for('admin.assignments') }}" class="row g-2 align-items-center">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search text-muted"></i></span>
+                {{ filter_form.search(class="form-control border-start-0", value=request.args.get('search', '')) }}
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            {{ filter_form.status(class="form-select", value=request.args.get('status', '')) }}
+        </div>
+        <div class="col-6 col-md-2">
+            {{ filter_form.assignment_type(class="form-select", value=request.args.get('assignment_type', '')) }}
+        </div>
+        <div class="col-6 col-md-2">
+            {{ filter_form.sort_by(class="form-select", value=request.args.get('sort_by', 'newest')) }}
+        </div>
+        <div class="col-6 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-outline-primary w-100">Filter</button>
+            <a href="{{ url_for('admin.assignments') }}" class="btn btn-outline-secondary" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Assignments Table -->
+<div class="card-portal p-0 overflow-hidden shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-portal table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th style="min-width: 250px;">Title & Description</th>
+                    <th>Type</th>
+                    <th>Group Size</th>
+                    <th>Enrolled / Target</th>
+                    <th>Status</th>
+                    <th>Due Date</th>
+                    <th class="text-end" style="min-width: 200px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in assignments %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('admin.assignment_detail', assignment_id=a.id) }}" class="fw-bold text-decoration-none text-reset">
+                                {{ a.title }}
+                            </a>
+                            <div class="text-muted small text-truncate" style="max-width: 320px;">
+                                {{ a.description }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge {{ 'bg-info text-dark' if a.assignment_type == 'GROUP' else 'bg-light text-dark border' }}">
+                                {{ a.assignment_type }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="fw-semibold">{{ a.max_group_size }}</span> Member{{ 's' if a.max_group_size > 1 else '' }}
+                        </td>
+                        <td>
+                            {% set enrolled = a.get_current_enrolled_count() %}
+                            {% set target = a.max_group_size * a.max_groups %}
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1 group-progress" style="width: 70px;">
+                                    <div class="progress-bar {{ 'bg-warning' if a.is_full else 'bg-primary' }}" style="width: {{ [100, (enrolled / target * 100)|round]|min }}%"></div>
+                                </div>
+                                <small class="text-muted">{{ enrolled }}/{{ target }}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-status {{ a.status|status_badge }}">{{ a.status }}</span>
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ a.due_date|datetime('%b %d, %Y') if a.due_date else 'No Deadline' }}</small>
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('admin.assignment_detail', assignment_id=a.id) }}" class="btn btn-outline-secondary" title="View Groups & Submissions">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{{ url_for('admin.edit_assignment', assignment_id=a.id) }}" class="btn btn-outline-secondary" title="Edit Assignment">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if a.status != 'CLOSED' %}
+                                    <form method="POST" action="{{ url_for('admin.close_assignment', assignment_id=a.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-outline-warning" title="Close Assignment (Block Joins)" data-confirm="Close this assignment? Students will no longer be able to join.">
+                                            <i class="bi bi-lock-fill"></i>
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form method="POST" action="{{ url_for('admin.reopen_assignment', assignment_id=a.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-outline-success" title="Reopen Assignment">
+                                            <i class="bi bi-unlock-fill"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                                <form method="POST" action="{{ url_for('admin.delete_assignment', assignment_id=a.id) }}" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-outline-danger" title="Delete Assignment" data-confirm="Are you sure you want to permanently delete '{{ a.title }}'?">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            No assignments matched your criteria.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+        <div class="d-flex justify-content-between align-items-center p-3 border-top">
+            <small class="text-muted">Showing page {{ pagination.page }} of {{ pagination.pages }}</small>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if pagination.has_prev %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('admin.assignments', page=pagination.prev_num, **request.args) }}">Previous</a></li>
+                    {% endif %}
+                    {% for p in pagination.iter_pages() %}
+                        {% if p %}
+                            <li class="page-item {{ 'active' if p == pagination.page else '' }}">
+                                <a class="page-link" href="{{ url_for('admin.assignments', page=p, **request.args) }}">{{ p }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if pagination.has_next %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('admin.assignments', page=pagination.next_num, **request.args) }}">Next</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

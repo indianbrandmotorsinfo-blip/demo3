@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Submissions{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Student Submissions</h1>
+        <p class="text-muted mb-0">Evaluate repositories, documentation links, and provide grading feedback</p>
+    </div>
+    <!-- Status Filter Buttons -->
+    <div class="btn-group" role="group">
+        <a href="{{ url_for('admin.submissions') }}" class="btn btn-sm {{ 'btn-primary' if not status_filter else 'btn-outline-secondary' }}">All</a>
+        <a href="{{ url_for('admin.submissions', status='PENDING') }}" class="btn btn-sm {{ 'btn-warning' if status_filter == 'PENDING' else 'btn-outline-secondary' }}">Pending Review</a>
+        <a href="{{ url_for('admin.submissions', status='APPROVED') }}" class="btn btn-sm {{ 'btn-success' if status_filter == 'APPROVED' else 'btn-outline-secondary' }}">Approved</a>
+        <a href="{{ url_for('admin.submissions', status='REJECTED') }}" class="btn btn-sm {{ 'btn-danger' if status_filter == 'REJECTED' else 'btn-outline-secondary' }}">Rejected</a>
+    </div>
+</div>
+
+<div class="card-portal p-0 overflow-hidden shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-portal table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Assignment</th>
+                    <th>Team / Group</th>
+                    <th>Submitted By</th>
+                    <th>Artifacts</th>
+                    <th>Status</th>
+                    <th>Submitted</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in submissions %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-truncate" style="max-width: 220px;">{{ sub.assignment.title }}</div>
+                            <small class="text-muted">{{ sub.assignment.assignment_type }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ sub.group.name }}</span>
+                            <div class="small text-muted">{{ sub.group.member_count }} member{{ 's' if sub.group.member_count > 1 else '' }}</div>
+                        </td>
+                        <td>
+                            <div>{{ sub.submitted_by.full_name if sub.submitted_by else 'Team' }}</div>
+                            <small class="text-muted">{{ sub.submitted_by.email if sub.submitted_by else '' }}</small>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{{ sub.repo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-dark py-0 px-2" style="font-size: 0.75rem;">
+                                    <i class="bi bi-github me-1"></i> Repo
+                                </a>
+                                <a href="{{ sub.docs_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;">
+                                    <i class="bi bi-file-earmark-text me-1"></i> Docs
+                                </a>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-status {{ sub.status|status_badge }}">{{ sub.status }}</span>
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ sub.submitted_at|datetime('%b %d, %H:%M') }}</small>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('admin.review_submission', submission_id=sub.id) }}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-check2-circle me-1"></i> Review
+                            </a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            No submissions found for the selected status.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+        <div class="d-flex justify-content-between align-items-center p-3 border-top">
+            <small class="text-muted">Showing page {{ pagination.page }} of {{ pagination.pages }}</small>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if pagination.has_prev %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('admin.submissions', page=pagination.prev_num, status=status_filter) }}">Previous</a></li>
+                    {% endif %}
+                    {% for p in pagination.iter_pages() %}
+                        {% if p %}
+                            <li class="page-item {{ 'active' if p == pagination.page else '' }}">
+                                <a class="page-link" href="{{ url_for('admin.submissions', page=p, status=status_filter) }}">{{ p }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if pagination.has_next %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('admin.submissions', page=pagination.next_num, status=status_filter) }}">Next</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

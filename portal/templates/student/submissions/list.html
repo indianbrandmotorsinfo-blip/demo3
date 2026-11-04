@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}My Submissions{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 fw-bold mb-1">My Team Submissions</h1>
+        <p class="text-muted mb-0">Review past project turn-ins, evaluation status, and instructor comments</p>
+    </div>
+</div>
+
+<div class="card-portal p-0 overflow-hidden shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-portal table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Assignment</th>
+                    <th>Team</th>
+                    <th>Artifacts</th>
+                    <th>Status</th>
+                    <th>Instructor Feedback</th>
+                    <th>Date</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in submissions %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('student.assignment_detail', assignment_id=sub.assignment_id) }}" class="fw-bold text-decoration-none text-reset">
+                                {{ sub.assignment.title }}
+                            </a>
+                            <div class="small text-muted">{{ sub.assignment.assignment_type }}</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ sub.group.name }}</span>
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{{ sub.repo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-dark py-0 px-2" style="font-size: 0.75rem;">
+                                    <i class="bi bi-github me-1"></i> Repo
+                                </a>
+                                <a href="{{ sub.docs_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;">
+                                    <i class="bi bi-file-earmark-text me-1"></i> Docs
+                                </a>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-status {{ sub.status|status_badge }}">{{ sub.status }}</span>
+                        </td>
+                        <td>
+                            {% if sub.feedback %}
+                                <div class="text-truncate small p-1 bg-light rounded border" style="max-width: 250px;" title="{{ sub.feedback }}">
+                                    <i class="bi bi-chat-left-quote me-1 text-primary"></i> {{ sub.feedback }}
+                                </div>
+                            {% else %}
+                                <small class="text-muted">Awaiting feedback</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ sub.submitted_at|datetime('%b %d, %Y') }}</small>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('student.submit_assignment', assignment_id=sub.assignment_id) }}" class="btn btn-sm btn-outline-primary">
+                                Resubmit
+                            </a>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-cloud-arrow-up fs-2 d-block mb-2"></i>
+                            You have not submitted any assignments yet.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+        <div class="d-flex justify-content-between align-items-center p-3 border-top">
+            <small class="text-muted">Showing page {{ pagination.page }} of {{ pagination.pages }}</small>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    {% if pagination.has_prev %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('student.submissions', page=pagination.prev_num) }}">Previous</a></li>
+                    {% endif %}
+                    {% for p in pagination.iter_pages() %}
+                        {% if p %}
+                            <li class="page-item {{ 'active' if p == pagination.page else '' }}">
+                                <a class="page-link" href="{{ url_for('student.submissions', page=p) }}">{{ p }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if pagination.has_next %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('student.submissions', page=pagination.next_num) }}">Next</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

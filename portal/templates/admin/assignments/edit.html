@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ assignment.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-3">
+    <div class="col-lg-8">
+        <div class="card-portal p-4 p-md-5">
+            <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom">
+                <div>
+                    <h1 class="h4 fw-bold mb-1">Edit Assignment</h1>
+                    <p class="text-muted small mb-0">{{ assignment.title }}</p>
+                </div>
+                <a href="{{ url_for('admin.assignment_detail', assignment_id=assignment.id) }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Details
+                </a>
+            </div>
+
+            <form method="POST" action="{{ url_for('admin.edit_assignment', assignment_id=assignment.id) }}" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small" for="title">Assignment Title</label>
+                    {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else "")) }}
+                    {% for error in form.title.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small" for="description">Assignment Requirements</label>
+                    {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else "")) }}
+                    {% for error in form.description.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small" for="assignment_type">Assignment Type</label>
+                        {{ form.assignment_type(class="form-select") }}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small" for="max_group_size">Group Size</label>
+                        {{ form.max_group_size(class="form-select" + (" is-invalid" if form.max_group_size.errors else "")) }}
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small" for="due_date">Submission Deadline</label>
+                        {{ form.due_date(class="form-control") }}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small" for="status">Assignment Status</label>
+                        {{ form.status(class="form-select") }}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{{ url_for('admin.assignment_detail', assignment_id=assignment.id) }}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary px-4">Update Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

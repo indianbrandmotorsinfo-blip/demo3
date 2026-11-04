@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Create Assignment{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-3">
+    <div class="col-lg-8">
+        <div class="card-portal p-4 p-md-5">
+            <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom">
+                <div>
+                    <h1 class="h4 fw-bold mb-1">Create New Assignment</h1>
+                    <p class="text-muted small mb-0">Configure project requirements, team sizing, and automatic full locking rules</p>
+                </div>
+                <a href="{{ url_for('admin.assignments') }}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to List
+                </a>
+            </div>
+
+            <form method="POST" action="{{ url_for('admin.create_assignment') }}" novalidate>
+                {{ form.hidden_tag() }}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small" for="title">Assignment Title</label>
+                    {{ form.title(class="form-control" + (" is-invalid" if form.title.errors else "")) }}
+                    {% for error in form.title.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                    <div class="form-text small">e.g., "Create AWS VPC Architecture" or "Distributed Cache using Redis"</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small" for="description">Assignment Requirements & Deliverables</label>
+                    {{ form.description(class="form-control" + (" is-invalid" if form.description.errors else "")) }}
+                    {% for error in form.description.errors %}
+                        <div class="invalid-feedback">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small" for="assignment_type">Assignment Type</label>
+                        {{ form.assignment_type(class="form-select") }}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small" for="max_group_size">Team / Group Size (2, 3, 4, 5)</label>
+                        {{ form.max_group_size(class="form-select" + (" is-invalid" if form.max_group_size.errors else "")) }}
+                        {% for error in form.max_group_size.errors %}
+                            <div class="invalid-feedback">{{ error }}</div>
+                        {% endfor %}
+                        <div class="form-text small">The first N students that click Join become the official group.</div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small" for="due_date">Submission Deadline</label>
+                        {{ form.due_date(class="form-control") }}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold small" for="status">Initial Status</label>
+                        {{ form.status(class="form-select") }}
+                    </div>
+                </div>
+
+                <div class="p-3 bg-light rounded small border mb-4">
+                    <div class="fw-bold mb-1"><i class="bi bi-info-circle-fill text-primary me-1"></i> Automatic Locking Business Rule:</div>
+                    <p class="text-muted mb-0">
+                        When the required number of members (e.g., 3 members for group size 3) click "Join", 
+                        the assignment automatically transitions to <strong>FULL</strong>. Nobody else can join, and enrolled students cannot leave.
+                    </p>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{{ url_for('admin.assignments') }}" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi bi-check2 me-1"></i> Publish Assignment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

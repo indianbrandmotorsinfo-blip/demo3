@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Student Groups{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Student Groups & Teams</h1>
+        <p class="text-muted mb-0">Overview of student cohort teams across all assignments</p>
+    </div>
+    <div class="col-md-4">
+        <form method="GET" action="{{ url_for('admin.groups') }}">
+            <select name="assignment_id" class="form-select" onchange="this.form.submit()">
+                <option value="">All Assignments</option>
+                {% for a in all_assignments %}
+                    <option value="{{ a.id }}" {% if selected_assignment_id == a.id %}selected{% endif %}>
+                        {{ a.title }} ({{ a.status }})
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+<div class="row g-4">
+    {% for group in groups %}
+        <div class="col-md-6 col-xl-4">
+            <div class="card-portal p-4 h-100 shadow-sm d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <h2 class="h6 fw-bold mb-0 text-truncate" style="max-width: 200px;">{{ group.name }}</h2>
+                        <a href="{{ url_for('admin.assignment_detail', assignment_id=group.assignment_id) }}" class="small text-muted text-decoration-none text-truncate d-block" style="max-width: 220px;">
+                            {{ group.assignment.title }}
+                        </a>
+                    </div>
+                    <span class="badge {{ 'bg-warning text-dark' if group.is_full else 'bg-info text-dark' }}">
+                        {{ 'LOCKED FULL' if group.is_full else 'FORMING' }}
+                    </span>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between text-muted small my-2">
+                    <span>Capacity: <strong>{{ group.member_count }}/{{ group.capacity }}</strong></span>
+                    <span>Group #{{ group.group_number }}</span>
+                </div>
+
+                <div class="progress group-progress mb-3">
+                    <div class="progress-bar {{ 'bg-warning' if group.is_full else 'bg-primary' }}" style="width: {{ [100, (group.member_count / group.capacity * 100)|round]|min }}%"></div>
+                </div>
+
+                <!-- Members List -->
+                <div class="list-group list-group-flush mb-3 flex-grow-1">
+                    {% for member in group.members %}
+                        <div class="list-group-item px-0 py-1 d-flex justify-content-between align-items-center border-0 small">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="avatar-chip" style="width: 24px; height: 24px; font-size: 0.7rem;">
+                                    {{ member.student.full_name[0] }}
+                                </div>
+                                <span class="fw-semibold">{{ member.student.full_name }}</span>
+                            </div>
+                            <small class="text-muted">{{ member.student.student_id or 'Student' }}</small>
+                        </div>
+                    {% else %}
+                        <div class="text-muted small py-2">No members enrolled.</div>
+                    {% endfor %}
+                </div>
+
+                <!-- Submission Status Footer -->
+                <div class="pt-3 border-top mt-auto d-flex justify-content-between align-items-center">
+                    {% set sub = group.latest_submission %}
+                    {% if sub %}
+                        <div>
+                            <span class="badge badge-status {{ sub.status|status_badge }}">{{ sub.status }}</span>
+                        </div>
+                        <a href="{{ url_for('admin.review_submission', submission_id=sub.id) }}" class="btn btn-sm btn-outline-primary">
+                            Review Deliverables
+                        </a>
+                    {% else %}
+                        <small class="text-muted"><i class="bi bi-hourglass me-1"></i> No submission yet</small>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="col-12 text-center py-5 text-muted">
+            <i class="bi bi-people fs-2 d-block mb-2"></i>
+            No groups found matching the selected filter.
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+    <div class="d-flex justify-content-between align-items-center p-3 mt-4 card-portal">
+        <small class="text-muted">Showing page {{ pagination.page }} of {{ pagination.pages }}</small>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if pagination.has_prev %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('admin.groups', page=pagination.prev_num, assignment_id=selected_assignment_id) }}">Previous</a></li>
+                {% endif %}
+                {% for p in pagination.iter_pages() %}
+                    {% if p %}
+                        <li class="page-item {{ 'active' if p == pagination.page else '' }}">
+                            <a class="page-link" href="{{ url_for('admin.groups', page=p, assignment_id=selected_assignment_id) }}">{{ p }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                {% if pagination.has_next %}
+                    <li class="page-item"><a class="page-link" href="{{ url_for('admin.groups', page=pagination.next_num, assignment_id=selected_assignment_id) }}">Next</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+{% endif %}
+{% endblock %}

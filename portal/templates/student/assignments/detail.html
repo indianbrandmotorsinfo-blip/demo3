@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}{{ assignment.title }} - Assignment Details{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <a href="{{ url_for('student.assignments') }}" class="small text-decoration-none text-muted">
+        <i class="bi bi-arrow-left me-1"></i> Back to Assignments
+    </a>
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mt-2 gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge badge-status {{ assignment.status|status_badge }}">{{ assignment.status }}</span>
+                <span class="badge bg-light text-dark border">{{ assignment.assignment_type }}</span>
+                <span class="badge bg-secondary text-white">{{ assignment.max_group_size }} Members per Team</span>
+            </div>
+            <h1 class="h3 fw-bold mb-0">{{ assignment.title }}</h1>
+        </div>
+
+        <div>
+            {% if my_group %}
+                <span class="badge bg-primary fs-6 p-2">
+                    <i class="bi bi-check-circle me-1"></i> Enrolled in {{ my_group.name }}
+                </span>
+            {% elif assignment.status == 'OPEN' %}
+                <form method="POST" action="{{ url_for('student.join_assignment', assignment_id=assignment.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
+                        <i class="bi bi-person-plus-fill me-1"></i> Join Assignment Team
+                    </button>
+                </form>
+            {% elif assignment.status == 'FULL' %}
+                <button class="btn btn-secondary disabled" disabled>
+                    <i class="bi bi-lock-fill me-1"></i> Team Capacity Reached (FULL)
+                </button>
+            {% else %}
+                <button class="btn btn-secondary disabled" disabled>
+                    <i class="bi bi-slash-circle me-1"></i> Assignment Closed
+                </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Main Description Column -->
+    <div class="col-lg-8">
+        <div class="card-portal p-4 p-md-5 mb-4 shadow-sm">
+            <h2 class="h5 fw-bold mb-3"><i class="bi bi-file-earmark-text text-primary me-2"></i>Assignment Brief & Instructions</h2>
+            <div class="text-secondary mb-4" style="white-space: pre-line; line-height: 1.7;">
+                {{ assignment.description }}
+            </div>
+
+            <hr class="my-4">
+
+            <div class="row g-3 small">
+                <div class="col-sm-6">
+                    <div class="text-muted fw-semibold mb-1">DEADLINE</div>
+                    <div class="fw-bold fs-6">
+                        {% if assignment.due_date %}
+                            <i class="bi bi-calendar-event text-danger me-1"></i> {{ assignment.due_date|datetime('%b %d, %Y at %I:%M %p') }}
+                        {% else %}
+                            <span class="text-muted">No explicit deadline set</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="text-muted fw-semibold mb-1">TEAM SIZING POLICY</div>
+                    <div class="fw-bold fs-6">
+                        <i class="bi bi-people-fill text-primary me-1"></i> Exactly {{ assignment.max_group_size }} Students
+                    </div>
+                    <small class="text-muted">First {{ assignment.max_group_size }} students to join form the official locked team.</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student's Group Workspace (If Enrolled) -->
+        {% if my_group %}
+            <div class="card-portal p-4 p-md-5 mb-4 shadow-sm border-primary">
+                <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                    <div>
+                        <h2 class="h5 fw-bold mb-0"><i class="bi bi-diagram-3-fill text-primary me-2"></i>{{ my_group.name }}</h2>
+                        <small class="text-muted">Official Team Workspace</small>
+                    </div>
+                    <div>
+                        {% if my_group.is_full %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-lock-fill me-1"></i> LOCKED FULL (Capacity Met)</span>
+                        {% else %}
+                            <span class="badge bg-info text-dark"><i class="bi bi-hourglass me-1"></i> FORMING ({{ my_group.member_count }}/{{ my_group.capacity }})</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Teammates Roster -->
+                <div class="mb-4">
+                    <h3 class="h6 text-uppercase fw-bold text-muted mb-3">Enrolled Teammates ({{ my_group.member_count }} of {{ my_group.capacity }})</h3>
+                    <div class="row g-3">
+                        {% for m in my_group.members %}
+                            <div class="col-sm-6">
+                                <div class="p-3 border rounded d-flex align-items-center gap-3 bg-body">
+                                    <div class="avatar-chip" style="width: 40px; height: 40px; font-size: 1rem;">
+                                        {{ m.student.full_name[0] }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold small">
+                                            {{ m.student.full_name }}
+                                            {% if m.user_id == current_user.id %}
+                                                <span class="badge bg-primary ms-1" style="font-size: 0.65rem;">You</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">{{ m.student.email }}</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">ID: {{ m.student.student_id or 'N/A' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Leaving Group Action (Only when NOT locked full) -->
+                {% if not my_group.is_full and assignment.status == 'OPEN' %}
+                    <div class="p-3 bg-light rounded d-flex justify-content-between align-items-center mb-4 border">
+                        <div class="small">
+                            <i class="bi bi-info-circle text-primary me-1"></i> Team is still forming. You may leave before capacity is reached.
+                        </div>
+                        <form method="POST" action="{{ url_for('student.leave_assignment', assignment_id=assignment.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" data-confirm="Are you sure you want to leave this group?">
+                                Leave Group
+                            </button>
+                        </form>
+                    </div>
+                {% elif my_group.is_full %}
+                    <div class="p-3 bg-light rounded small text-muted border mb-4">
+                        <i class="bi bi-shield-lock-fill text-warning me-1"></i> <strong>Group is Locked:</strong> Because this group reached full capacity ({{ my_group.capacity }}/{{ my_group.capacity }}), members cannot leave. All members collaborate on this official submission.
+                    </div>
+                {% endif %}
+
+                <!-- Submission Deliverables Status & Action -->
+                <div class="pt-3 border-top">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="h6 text-uppercase fw-bold text-muted mb-0">Project Deliverables (GitHub & Docs)</h3>
+                        {% if latest_submission %}
+                            <span class="badge badge-status {{ latest_submission.status|status_badge }}">
+                                {{ latest_submission.status }}
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    {% if latest_submission %}
+                        <div class="p-3 border rounded bg-light mb-3">
+                            <div class="row g-2 small">
+                                <div class="col-sm-6">
+                                    <span class="text-muted fw-bold">GitHub Repository:</span><br>
+                                    <a href="{{ latest_submission.repo_url }}" target="_blank" rel="noopener noreferrer" class="text-break">
+                                        <i class="bi bi-github me-1"></i> {{ latest_submission.repo_url }}
+                                    </a>
+                                </div>
+                                <div class="col-sm-6">
+                                    <span class="text-muted fw-bold">Documentation URL:</span><br>
+                                    <a href="{{ latest_submission.docs_url }}" target="_blank" rel="noopener noreferrer" class="text-break">
+                                        <i class="bi bi-link-45deg me-1"></i> {{ latest_submission.docs_url }}
+                                    </a>
+                                </div>
+                            </div>
+
+                            {% if latest_submission.feedback %}
+                                <div class="mt-3 pt-2 border-top">
+                                    <span class="text-muted fw-bold small">Instructor Feedback:</span>
+                                    <div class="p-2 rounded bg-white border mt-1 small">
+                                        {{ latest_submission.feedback }}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('student.submit_assignment', assignment_id=assignment.id) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-pencil me-1"></i> Update Deliverables / Resubmit
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="p-3 bg-light rounded text-center mb-3 border">
+                            <i class="bi bi-cloud-arrow-up text-primary display-6 d-block mb-2"></i>
+                            <div class="fw-semibold">No deliverables submitted yet</div>
+                            <p class="small text-muted mb-3">Submit your team's GitHub repository and Google Docs/Notion documentation URL.</p>
+                            <a href="{{ url_for('student.submit_assignment', assignment_id=assignment.id) }}" class="btn btn-primary btn-sm px-4">
+                                <i class="bi bi-plus-lg me-1"></i> Submit Project Deliverables
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Sidebar Information Column -->
+    <div class="col-lg-4">
+        <!-- Cohort Capacity Card -->
+        <div class="card-portal p-4 mb-4 shadow-sm">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-3">Cohort Status</h2>
+            {% set enrolled = assignment.get_current_enrolled_count() %}
+            {% set target = assignment.max_group_size * assignment.max_groups %}
+
+            <div class="text-center py-2">
+                <div class="display-6 fw-bold text-primary">{{ enrolled }} / {{ target }}</div>
+                <div class="text-muted small">Total Enrolled Students</div>
+            </div>
+
+            <div class="progress group-progress my-3">
+                <div class="progress-bar {{ 'bg-warning' if assignment.is_full else 'bg-primary' }}" style="width: {{ [100, (enrolled / target * 100)|round]|min }}%"></div>
+            </div>
+
+            <div class="small text-muted">
+                {% if assignment.status == 'FULL' %}
+                    <i class="bi bi-lock-fill text-warning me-1"></i> <strong>Cohort is Full:</strong> All available group seats have been secured.
+                {% elif assignment.status == 'CLOSED' %}
+                    <i class="bi bi-slash-circle text-danger me-1"></i> <strong>Assignment Closed:</strong> The instructor has disabled new join actions.
+                {% else %}
+                    <i class="bi bi-door-open-fill text-success me-1"></i> <strong>Accepting Students:</strong> Spots are assigned on a first-come, first-served basis.
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- All Formed Groups in this Assignment -->
+        <div class="card-portal p-4 shadow-sm">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-3">Active Teams ({{ groups|length }})</h2>
+            {% if groups %}
+                <div class="d-flex flex-column gap-3">
+                    {% for g in groups %}
+                        <div class="p-3 border rounded {{ 'border-primary bg-light' if my_group and my_group.id == g.id else 'bg-body' }}">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <div class="fw-bold small">{{ g.name }}</div>
+                                <span class="badge {{ 'bg-warning text-dark' if g.is_full else 'bg-info text-dark' }}" style="font-size: 0.7rem;">
+                                    {{ 'LOCKED FULL' if g.is_full else 'FORMING' }}
+                                </span>
+                            </div>
+                            <div class="text-muted small mb-2">{{ g.member_count }} / {{ g.capacity }} Members</div>
+                            <div class="d-flex flex-wrap gap-1">
+                                {% for mem in g.members %}
+                                    <span class="badge bg-secondary" style="font-size: 0.65rem;">
+                                        {{ mem.student.full_name }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-3 text-muted small">
+                    No teams formed yet. Click Join to be the first!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

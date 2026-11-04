@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Welcome, {{ current_user.full_name }}</h1>
+        <p class="text-muted mb-0">Track your active assignments, team members, and review status</p>
+    </div>
+    <a href="{{ url_for('student.assignments') }}" class="btn btn-primary d-flex align-items-center gap-2">
+        <i class="bi bi-search"></i> Browse Open Assignments
+    </a>
+</div>
+
+<!-- Student KPI Metrics Grid -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="metric-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="metric-label">My Active Teams</div>
+                    <div class="metric-number mt-1">{{ metrics.my_active_assignments }}</div>
+                </div>
+                <i class="bi bi-people fs-4 text-muted"></i>
+            </div>
+            <div class="small text-muted mt-2">Enrolled project groups</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="metric-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="metric-label">Available to Join</div>
+                    <div class="metric-number mt-1">{{ metrics.open_available_count }}</div>
+                </div>
+                <i class="bi bi-door-open fs-4 text-muted"></i>
+            </div>
+            <div class="small text-muted mt-2">Open assignments</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="metric-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="metric-label">My Submissions</div>
+                    <div class="metric-number mt-1">{{ metrics.my_submissions_count }}</div>
+                </div>
+                <i class="bi bi-cloud-arrow-up fs-4 text-muted"></i>
+            </div>
+            <div class="small text-muted mt-2">GitHub & Docs turned in</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="metric-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="metric-label">Approved Projects</div>
+                    <div class="metric-number mt-1">{{ metrics.approved_count }}</div>
+                </div>
+                <i class="bi bi-award fs-4 text-muted"></i>
+            </div>
+            <div class="small text-muted mt-2">Passed instructor review</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Active Enrolled Teams -->
+    <div class="col-lg-7">
+        <div class="card-portal p-4 h-100 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 fw-bold mb-0"><i class="bi bi-diagram-3 text-primary me-2"></i>My Enrolled Teams</h2>
+                <span class="badge bg-primary rounded-pill">{{ my_groups|length }} Active</span>
+            </div>
+
+            {% if my_groups %}
+                <div class="d-flex flex-column gap-3">
+                    {% for group in my_groups %}
+                        <div class="border rounded-3 p-3 shadow-sm bg-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h3 class="h6 fw-bold mb-1">
+                                        <a href="{{ url_for('student.assignment_detail', assignment_id=group.assignment_id) }}" class="text-decoration-none text-reset">
+                                            {{ group.assignment.title }}
+                                        </a>
+                                    </h3>
+                                    <span class="badge bg-light text-dark border">{{ group.name }}</span>
+                                </div>
+                                <span class="badge {{ 'bg-warning text-dark' if group.is_full else 'bg-info text-dark' }}">
+                                    {{ 'LOCKED FULL' if group.is_full else 'FORMING' }}
+                                </span>
+                            </div>
+
+                            <!-- Team Members -->
+                            <div class="small text-muted mb-2">Teammates:</div>
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                {% for m in group.members %}
+                                    <span class="badge {{ 'bg-primary' if m.user_id == current_user.id else 'bg-secondary' }} d-flex align-items-center gap-1 py-1 px-2">
+                                        <i class="bi bi-person"></i> {{ m.student.full_name }} {% if m.user_id == current_user.id %}(You){% endif %}
+                                    </span>
+                                {% endfor %}
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                                {% set sub = group.latest_submission %}
+                                {% if sub %}
+                                    <div>
+                                        <span class="badge badge-status {{ sub.status|status_badge }}">{{ sub.status }}</span>
+                                        <small class="text-muted ms-1">Submitted on {{ sub.submitted_at|datetime('%b %d') }}</small>
+                                    </div>
+                                    <a href="{{ url_for('student.submit_assignment', assignment_id=group.assignment_id) }}" class="btn btn-sm btn-outline-secondary">
+                                        Update Deliverables
+                                    </a>
+                                {% else %}
+                                    <small class="text-warning"><i class="bi bi-clock-history"></i> Pending submission</small>
+                                    <a href="{{ url_for('student.submit_assignment', assignment_id=group.assignment_id) }}" class="btn btn-sm btn-primary">
+                                        Submit Work
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-people fs-1 d-block mb-3 opacity-50"></i>
+                    <h3 class="h6 fw-bold">You haven't joined any assignment groups yet</h3>
+                    <p class="small text-muted mb-3">Browse available course assignments and click "Join" to form a team!</p>
+                    <a href="{{ url_for('student.assignments') }}" class="btn btn-primary btn-sm">Browse Available Assignments</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Available Open Assignments to Join -->
+    <div class="col-lg-5">
+        <div class="card-portal p-4 h-100 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 fw-bold mb-0"><i class="bi bi-door-open text-success me-2"></i>Available to Join</h2>
+                <a href="{{ url_for('student.assignments') }}" class="small text-decoration-none">View All</a>
+            </div>
+
+            {% if available_assignments %}
+                <div class="list-group list-group-flush">
+                    {% for a in available_assignments %}
+                        <div class="list-group-item px-0 py-3 border-bottom">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <a href="{{ url_for('student.assignment_detail', assignment_id=a.id) }}" class="fw-bold text-decoration-none text-reset">
+                                    {{ a.title }}
+                                </a>
+                                <span class="badge bg-success text-white">OPEN</span>
+                            </div>
+                            <p class="small text-muted text-truncate mb-2" style="max-width: 320px;">{{ a.description }}</p>
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="bi bi-people me-1"></i> Group size: <strong>{{ a.max_group_size }}</strong>
+                                </small>
+                                <a href="{{ url_for('student.assignment_detail', assignment_id=a.id) }}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.8rem;">
+                                    View & Join
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-check-circle text-success fs-2 d-block mb-2"></i>
+                    You have joined all currently available assignments or all cohorts are full!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

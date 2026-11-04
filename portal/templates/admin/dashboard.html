@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Instructor & Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Administrative Dashboard</h1>
+        <p class="text-muted mb-0">Overview of assignment cohort capacity, student enrollments, and pending reviews</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin.create_assignment') }}" class="btn btn-primary d-flex align-items-center gap-2">
+            <i class="bi bi-plus-circle"></i> Create Assignment
+        </a>
+        <a href="{{ url_for('admin.statistics') }}" class="btn btn-outline-secondary d-flex align-items-center gap-2">
+            <i class="bi bi-bar-chart-line"></i> View Analytics
+        </a>
+    </div>
+</div>
+
+<!-- KPI Metrics Grid -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="metric-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="metric-label">Total Assignments</div>
+                    <div class="metric-number mt-1">{{ metrics.assignments.total }}</div>
+                </div>
+                <i class="bi bi-journal-code fs-4 text-muted"></i>
+            </div>
+            <div class="small text-muted mt-2">
+                <span class="badge badge-open me-1">{{ metrics.assignments.open }} Open</span>
+                <span class="badge badge-full me-1">{{ metrics.assignments.full }} Full</span>
+                <span class="badge badge-secondary">{{ metrics.assignments.closed }} Closed</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="metric-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="metric-label">Pending Reviews</div>
+                    <div class="metric-number mt-1">{{ metrics.submissions.pending }}</div>
+                </div>
+                <i class="bi bi-clock-history fs-4 text-muted"></i>
+            </div>
+            <div class="small text-muted mt-2">
+                <span class="badge badge-open me-1">{{ metrics.submissions.approved }} Approved</span>
+                <span class="badge badge-full">{{ metrics.submissions.rejected }} Rejected</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="metric-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="metric-label">Active Groups</div>
+                    <div class="metric-number mt-1">{{ metrics.groups.total }}</div>
+                </div>
+                <i class="bi bi-people fs-4 text-muted"></i>
+            </div>
+            <div class="small text-muted mt-2">
+                <span class="badge badge-pending me-1">{{ metrics.groups.full }} Locked Full</span>
+                <span class="badge badge-info">{{ metrics.groups.forming }} Forming</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-6 col-lg-3">
+        <div class="metric-card h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="metric-label">Registered Students</div>
+                    <div class="metric-number mt-1">{{ metrics.students.total }}</div>
+                </div>
+                <i class="bi bi-mortarboard fs-4 text-muted"></i>
+            </div>
+            <div class="small text-muted mt-2">
+                <span class="badge badge-open me-1">{{ metrics.students.enrolled }} Enrolled</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Pending Submissions Requiring Attention -->
+    <div class="col-lg-6">
+        <div class="card-portal h-100 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 fw-bold mb-0"><i class="bi bi-inbox-fill text-warning me-2"></i>Submissions Pending Review</h2>
+                <a href="{{ url_for('admin.submissions', status='PENDING') }}" class="small text-decoration-none">View All</a>
+            </div>
+
+            {% if pending_submissions %}
+                <div class="table-responsive">
+                    <table class="table table-portal table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Assignment / Team</th>
+                                <th>Submitted By</th>
+                                <th>Date</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sub in pending_submissions %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold text-truncate" style="max-width: 180px;">{{ sub.assignment.title }}</div>
+                                        <small class="text-muted">{{ sub.group.name }}</small>
+                                    </td>
+                                    <td>
+                                        <small class="fw-semibold">{{ sub.submitted_by.full_name if sub.submitted_by else 'Team' }}</small>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ sub.submitted_at|datetime('%b %d, %H:%M') }}</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{{ url_for('admin.review_submission', submission_id=sub.id) }}" class="btn btn-sm btn-primary">
+                                            Review
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-check2-all text-success display-4 mb-2"></i>
+                    <p class="mb-0">Inbox zero! No pending student submissions awaiting review.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Assignments & Status -->
+    <div class="col-lg-6">
+        <div class="card-portal h-100 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h5 fw-bold mb-0"><i class="bi bi-journal-text text-primary me-2"></i>Recent Assignments</h2>
+                <a href="{{ url_for('admin.assignments') }}" class="small text-decoration-none">View All</a>
+            </div>
+
+            {% if recent_assignments %}
+                <div class="table-responsive">
+                    <table class="table table-portal table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Size</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in recent_assignments %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ url_for('admin.assignment_detail', assignment_id=a.id) }}" class="fw-semibold text-decoration-none text-reset">
+                                            {{ a.title }}
+                                        </a>
+                                        <div class="small text-muted">{{ a.assignment_type }}</div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">{{ a.max_group_size }} Member{{ 's' if a.max_group_size > 1 else '' }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-status {{ a.status|status_badge }}">{{ a.status }}</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{{ url_for('admin.assignment_detail', assignment_id=a.id) }}" class="btn btn-sm btn-outline-secondary">
+                                            Manage
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-4 text-muted">
+                    <p class="mb-2">No assignments published yet.</p>
+                    <a href="{{ url_for('admin.create_assignment') }}" class="btn btn-sm btn-primary">Create First Assignment</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- System Audit Logs Stream -->
+<div class="card-portal p-4 mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h5 fw-bold mb-0"><i class="bi bi-activity text-secondary me-2"></i>Audit Activity Trail</h2>
+        <span class="badge bg-secondary">System Recorded</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-portal table-sm table-hover align-middle small">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Action</th>
+                    <th>Details</th>
+                    <th>User</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_logs %}
+                    <tr>
+                        <td class="text-muted" style="white-space: nowrap;">{{ log.created_at|datetime('%b %d, %I:%M %p') }}</td>
+                        <td><code>{{ log.action }}</code></td>
+                        <td>{{ log.details }}</td>
+                        <td>{{ log.user.full_name if log.user else 'System' }}</td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-3">No activity logs recorded yet.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

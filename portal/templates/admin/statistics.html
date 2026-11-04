@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Assignment Statistics & Analytics{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+    <div>
+        <h1 class="h3 fw-bold mb-1">Assignment Analytics & Performance</h1>
+        <p class="text-muted mb-0">Cohort distribution, team formations, and submission completion rates</p>
+    </div>
+    <div>
+        <span class="badge bg-secondary p-2"><i class="bi bi-lightning-charge-fill text-warning me-1"></i> Cached with Redis</span>
+    </div>
+</div>
+
+<!-- Charts Grid -->
+<div class="row g-4 mb-4">
+    <!-- Status Distribution Chart -->
+    <div class="col-lg-4">
+        <div class="card-portal p-4 h-100 shadow-sm">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-3">Assignment Status Ratio</h2>
+            <div style="height: 240px; position: relative;">
+                <canvas id="statusChart"></canvas>
+            </div>
+            <div class="d-flex justify-content-around text-center mt-3 pt-3 border-top small">
+                <div>
+                    <div class="fw-bold text-success">{{ stats.assignments.open }}</div>
+                    <div class="text-muted">Open</div>
+                </div>
+                <div>
+                    <div class="fw-bold text-warning">{{ stats.assignments.full }}</div>
+                    <div class="text-muted">Full</div>
+                </div>
+                <div>
+                    <div class="fw-bold text-secondary">{{ stats.assignments.closed }}</div>
+                    <div class="text-muted">Closed</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submission Outcomes Chart -->
+    <div class="col-lg-4">
+        <div class="card-portal p-4 h-100 shadow-sm">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-3">Submission Review Decisions</h2>
+            <div style="height: 240px; position: relative;">
+                <canvas id="submissionChart"></canvas>
+            </div>
+            <div class="d-flex justify-content-around text-center mt-3 pt-3 border-top small">
+                <div>
+                    <div class="fw-bold text-success">{{ stats.submissions.approved }}</div>
+                    <div class="text-muted">Approved</div>
+                </div>
+                <div>
+                    <div class="fw-bold text-warning">{{ stats.submissions.pending }}</div>
+                    <div class="text-muted">Pending</div>
+                </div>
+                <div>
+                    <div class="fw-bold text-danger">{{ stats.submissions.rejected }}</div>
+                    <div class="text-muted">Rejected</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Size Distribution Chart -->
+    <div class="col-lg-4">
+        <div class="card-portal p-4 h-100 shadow-sm">
+            <h2 class="h6 fw-bold text-uppercase text-muted mb-3">Group Size Frequency (1 - 5)</h2>
+            <div style="height: 240px; position: relative;">
+                <canvas id="sizeChart"></canvas>
+            </div>
+            <div class="text-center text-muted small mt-3 pt-3 border-top">
+                Configured sizes across all published assignments
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Data Tables -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card-portal p-4">
+            <h2 class="h5 fw-bold mb-3"><i class="bi bi-people me-2 text-primary"></i>Student Participation Metrics</h2>
+            <table class="table table-portal align-middle">
+                <tbody>
+                    <tr>
+                        <td>Total Registered Students</td>
+                        <td class="text-end fw-bold">{{ stats.students.total }}</td>
+                    </tr>
+                    <tr>
+                        <td>Students Enrolled in At Least One Team</td>
+                        <td class="text-end fw-bold text-success">{{ stats.students.enrolled }}</td>
+                    </tr>
+                    <tr>
+                        <td>Unassigned / Inactive Students</td>
+                        <td class="text-end fw-bold text-muted">{{ stats.students.unassigned }}</td>
+                    </tr>
+                    <tr>
+                        <td>Total Student Groups Created</td>
+                        <td class="text-end fw-bold">{{ stats.groups.total }}</td>
+                    </tr>
+                    <tr>
+                        <td>Groups Locked Full (Capacity Reached)</td>
+                        <td class="text-end fw-bold text-warning">{{ stats.groups.full }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card-portal p-4">
+            <h2 class="h5 fw-bold mb-3"><i class="bi bi-file-earmark-check me-2 text-success"></i>Deliverable Performance Metrics</h2>
+            <table class="table table-portal align-middle">
+                <tbody>
+                    <tr>
+                        <td>Total Submissions Recorded</td>
+                        <td class="text-end fw-bold">{{ stats.submissions.total }}</td>
+                    </tr>
+                    <tr>
+                        <td>Submissions Approved</td>
+                        <td class="text-end fw-bold text-success">{{ stats.submissions.approved }}</td>
+                    </tr>
+                    <tr>
+                        <td>Submissions Awaiting Grading</td>
+                        <td class="text-end fw-bold text-warning">{{ stats.submissions.pending }}</td>
+                    </tr>
+                    <tr>
+                        <td>Submissions Requiring Revisions (Rejected)</td>
+                        <td class="text-end fw-bold text-danger">{{ stats.submissions.rejected }}</td>
+                    </tr>
+                    <tr>
+                        <td>Group vs Individual Assignment Ratio</td>
+                        <td class="text-end fw-bold">{{ stats.assignment_types.group }} Group / {{ stats.assignment_types.individual }} Individual</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const statsData = {{ stats|tojson }};
+        initStatisticsCharts(statsData);
+    });
+</script>
+{% endblock %}
